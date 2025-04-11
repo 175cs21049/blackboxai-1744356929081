@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid #3B82F6;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-semibold">Face Attendance</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <a href="/register" class="text-gray-600 hover:text-gray-900">Register</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-md mx-auto mt-10 bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-8">
+            <h2 class="text-2xl font-bold text-center mb-8">Face Recognition Login</h2>
+            
+            <div class="relative w-full h-[360px] bg-gray-100 rounded-lg overflow-hidden mb-6">
+                <video id="video" width="640" height="480" autoplay muted playsinline 
+                    class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full object-cover">
+                </video>
+                <div id="overlay" class="absolute top-0 left-0 w-full h-full"></div>
+                
+                <!-- Loading overlay -->
+                <div id="loadingOverlay" class="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+                    <div class="text-white text-center">
+                        <div class="spinner mx-auto mb-4"></div>
+                        <p id="loadingText">Loading face recognition models...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="status" class="text-center mb-6 text-sm flex items-center justify-center">
+                <div class="spinner"></div>
+                <span>Loading face recognition models...</span>
+            </div>
+
+            <div class="space-y-4">
+                <button id="startCamera" disabled
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Start Camera</span>
+                </button>
+
+                <button id="loginButton" disabled
+                    class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Login with Face</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for face-api.js to load before loading login.js
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            const status = document.getElementById('status');
+
+            // Check if face-api is loaded
+            const checkFaceApi = setInterval(() => {
+                if (window.faceapi) {
+                    clearInterval(checkFaceApi);
+                    const script = document.createElement('script');
+                    script.src = '/static/js/login.js';
+                    document.body.appendChild(script);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
