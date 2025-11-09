@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Deepfake Detector - Powered by CNN & RNN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        /* Animated gradient background */
+        .gradient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(-45deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-100px) translateX(50px); }
+            50% { transform: translateY(-200px) translateX(-50px); }
+            75% { transform: translateY(-100px) translateX(100px); }
+        }
+        
+        /* Glass morphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        /* Upload zone */
+        .upload-zone {
+            border: 3px dashed rgba(255, 255, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .upload-zone:hover {
+            border-color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .upload-zone.dragover {
+            border-color: #4facfe;
+            background: rgba(79, 172, 254, 0.1);
+            transform: scale(1.02);
+        }
+        
+        /* Result card animations */
+        .result-card {
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Progress bar */
+        .progress-bar {
+            height: 4px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            animation: progress 2s ease-in-out infinite;
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        /* Confidence meter */
+        .confidence-meter {
+            position: relative;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s ease, background 0.5s ease;
+        }
+        
+        .confidence-fill.real {
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .confidence-fill.fake {
+            background: linear-gradient(90deg, #eb3349 0%, #f45c43 100%);
+        }
+        
+        /* Pulse animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        /* Button hover effects */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Stats card */
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated gradient background -->
+    <div class="gradient-bg"></div>
+    
+    <!-- Floating particles -->
+    <div class="particle" style="width: 100px; height: 100px; top: 10%; left: 10%; animation-delay: 0s;"></div>
+    <div class="particle" style="width: 150px; height: 150px; top: 60%; left: 80%; animation-delay: 5s;"></div>
+    <div class="particle" style="width: 80px; height: 80px; top: 80%; left: 20%; animation-delay: 10s;"></div>
+    <div class="particle" style="width: 120px; height: 120px; top: 30%; left: 70%; animation-delay: 15s;"></div>
+
+    <!-- Navigation -->
+    <nav class="glass relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">AI Deepfake Detector</h1>
+                        <p class="text-xs text-white text-opacity-70">Powered by CNN & RNN</p>
+                    </div>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="text-white hover:text-opacity-80 transition px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10">
+                        Home
+                    </a>
+                    <a href="/dashboard" class="text-white hover:text-opacity-80 transition px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10">
+                        Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h2 class="text-5xl font-extrabold text-white mb-4">
+                Detect Deepfakes with AI
+            </h2>
+            <p class="text-xl text-white text-opacity-90 max-w-3xl mx-auto">
+                Advanced CNN and RNN algorithms analyze images to detect morphed, manipulated, and AI-generated content with high accuracy.
+            </p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <div class="stat-card rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-white mb-2" id="totalDetections">0</div>
+                <div class="text-white text-opacity-80 text-sm">Total Detections</div>
+            </div>
+            <div class="stat-card rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-green-300 mb-2" id="realCount">0</div>
+                <div class="text-white text-opacity-80 text-sm">Real Images</div>
+            </div>
+            <div class="stat-card rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-red-300 mb-2" id="fakeCount">0</div>
+                <div class="text-white text-opacity-80 text-sm">Fake Images</div>
+            </div>
+            <div class="stat-card rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-blue-300 mb-2" id="avgConfidence">0%</div>
+                <div class="text-white text-opacity-80 text-sm">Avg Confidence</div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="glass rounded-2xl p-8 mb-8">
+            <h3 class="text-2xl font-bold text-white mb-6 text-center">Upload Image for Analysis</h3>
+            
+            <div id="uploadZone" class="upload-zone rounded-xl p-12 text-center cursor-pointer">
+                <svg class="w-20 h-20 mx-auto mb-4 text-white text-opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p class="text-white text-xl mb-2">Drag & Drop your image here</p>
+                <p class="text-white text-opacity-70 mb-4">or click to browse</p>
+                <button class="btn-primary text-white px-8 py-3 rounded-lg font-semibold">
+                    Choose File
+                </button>
+                <input type="file" id="fileInput" accept="image/*" class="hidden" multiple>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="hidden mt-6">
+                <div class="w-full bg-white bg-opacity-20 rounded-full h-2 overflow-hidden">
+                    <div class="progress-bar"></div>
+                </div>
+                <p class="text-white text-center mt-2 pulse">Analyzing image with AI...</p>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <h3 class="text-2xl font-bold text-white mb-6">Detection Results</h3>
+            <div id="resultsContainer" class="space-y-6">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Detection History -->
+        <div class="glass rounded-2xl p-8 mt-8">
+            <h3 class="text-2xl font-bold text-white mb-6">Recent Detections</h3>
+            <div id="historyContainer" class="space-y-4">
+                <p class="text-white text-opacity-70 text-center py-8">No detection history yet. Upload an image to get started!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/detector.js') }}"></script>
+</body>
+</html>

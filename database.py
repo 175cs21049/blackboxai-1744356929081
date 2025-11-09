@@ -41,6 +41,22 @@ class Database:
         )
         ''')
 
+        # Create deepfake detection history table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS detection_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            filename TEXT NOT NULL,
+            prediction TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            fake_probability REAL NOT NULL,
+            real_probability REAL NOT NULL,
+            image_metadata TEXT,
+            detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+        ''')
+
         conn.commit()
         conn.close()
 
@@ -170,3 +186,85 @@ class Database:
         conn.close()
 
         return dict(record) if record else None
+
+    def save_detection_result(self, user_id, filename, prediction_result, metadata=None):
+        """Save deepfake detection result to database"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute('''
+            INSERT INTO detection_history 
+            (user_id, filename, prediction, confidence, fake_probability, real_probability, image_metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_id,
+                filename,
+                prediction_result['prediction'],
+                prediction_result['confidence'],
+                prediction_result['fake_probability'],
+                prediction_result['real_probability'],
+                json.dumps(metadata) if metadata else None
+            ))
+            
+            conn.commit()
+            detection_id = cursor.lastrowid
+            return {"status": "success", "detection_id": detection_id}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        finally:
+            conn.close()
+
+    def get_detection_history(self, user_id=None, limit=50):
+        """Get detection history"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        if user_id:
+            cursor.execute('''
+            SELECT * FROM detection_history 
+            WHERE user_id = ?
+            ORDER BY detected_at DESC
+            LIMIT ?
+            ''', (user_id, limit))
+        else:
+            cursor.execute('''
+            SELECT * FROM detection_history 
+            ORDER BY detected_at DESC
+            LIMIT ?
+            ''', (limit,))
+
+        history = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return history
+
+    def get_detection_stats(self, user_id=None):
+        """Get detection statistics"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        if user_id:
+            cursor.execute('''
+            SELECT 
+                COUNT(*) as total_detections,
+                SUM(CASE WHEN prediction = 'fake' THEN 1 ELSE 0 END) as fake_count,
+                SUM(CASE WHEN prediction = 'real' THEN 1 ELSE 0 END) as real_count,
+                AVG(confidence) as avg_confidence
+            FROM detection_history
+            WHERE user_id = ?
+            ''', (user_id,))
+        else:
+            cursor.execute('''
+            SELECT 
+                COUNT(*) as total_detections,
+                SUM(CASE WHEN prediction = 'fake' THEN 1 ELSE 0 END) as fake_count,
+                SUM(CASE WHEN prediction = 'real' THEN 1 ELSE 0 END) as real_count,
+                AVG(confidence) as avg_confidence
+            FROM detection_history
+            ''')
+
+        stats = cursor.fetchone()
+        conn.close()
+
+        return dict(stats) if stats else None
